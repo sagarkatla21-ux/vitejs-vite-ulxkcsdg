@@ -1,0 +1,327 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Incentive Intelligence Studio</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#101827;color:#fff;font-family:Arial}
+header{background:#18243a;padding:18px}
+header h2{margin:0}
+header small{color:#aab8ce}
+nav{display:flex;overflow:auto;background:#202e45}
+nav button{background:none;color:white;border:0;padding:14px;white-space:nowrap}
+nav button.active{background:#2878e8}
+main{padding:15px}
+.page{display:none}
+.page.active{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card{background:#202e45;padding:15px;border-radius:10px;margin-bottom:12px}
+.value{font-size:21px;color:#60a5fa;margin-top:10px}
+label{font-size:13px;color:#b9c6d8}
+input{width:100%;padding:11px;margin:7px 0 13px;background:#101827;color:white;border:1px solid #52627a;border-radius:6px}
+.action{background:#2878e8;color:white;border:0;padding:11px;border-radius:6px;margin:4px 2px}
+.secondary{background:#52627a}
+.danger{background:#b83250}
+table{width:100%;font-size:12px;border-collapse:collapse;min-width:470px}
+td,th{padding:10px 7px;border-bottom:1px solid #40506a;text-align:left}
+.scroll{overflow:auto}
+.result{color:#60dfa7;font-size:18px;margin-top:12px}
+small.muted{color:#aab8ce}
+footer{text-align:center;color:#8494ad;padding:20px;font-size:11px}
+</style>
+</head>
+<body>
+
+<header>
+<h2>📊 Incentive Intelligence Studio</h2>
+<small>Sales Incentive Analysis & Policy Simulator | Version 4.0</small>
+</header>
+
+<nav>
+<button class="active" onclick="showPage('dash',this)">Dashboard</button>
+<button onclick="showPage('emp',this)">Employees</button>
+<button onclick="showPage('calc',this)">Calculator</button>
+<button onclick="showPage('policy',this)">Policy Lab</button>
+</nav>
+
+<main>
+
+<section id="dash" class="page active">
+<h3>Executive Dashboard</h3>
+<div class="grid">
+<div class="card">Total Business<div class="value" id="business">₹0</div></div>
+<div class="card">Total Target<div class="value" id="target">₹0</div></div>
+<div class="card">Achievement<div class="value" id="achievement">0%</div></div>
+<div class="card">Total Incentive<div class="value" id="payout">₹0</div></div>
+<div class="card">Employees<div class="value" id="count">0</div></div>
+<div class="card">Payout Ratio<div class="value" id="ratio">0%</div></div>
+</div>
+
+<div class="card">
+<h3>Performance Summary</h3>
+<p id="summary"></p>
+</div>
+
+<div class="card">
+<h3>Top Performers</h3>
+<div id="top"></div>
+</div>
+</section>
+
+<section id="emp" class="page">
+<h3>Employee Management</h3>
+<div class="card">
+<input type="hidden" id="editId">
+
+<label>Employee Name</label>
+<input id="name" placeholder="Employee name">
+
+<label>Business Target (₹)</label>
+<input id="et" type="number" value="1000000">
+
+<label>Actual Business (₹)</label>
+<input id="eb" type="number" value="1200000">
+
+<label>Incentive Rate (%)</label>
+<input id="er" type="number" value="2">
+
+<label>Maximum Incentive (₹)</label>
+<input id="ec" type="number" value="40000">
+
+<button class="action" onclick="saveEmployee()">Save Employee</button>
+<button class="action secondary" onclick="clearForm()">Clear</button>
+</div>
+
+<div class="card scroll">
+<h3>Employee Records</h3>
+<table>
+<thead>
+<tr><th>Name</th><th>Business</th><th>Achievement</th><th>Payout</th><th>Actions</th></tr>
+</thead>
+<tbody id="rows"></tbody>
+</table>
+</div>
+</section>
+
+<section id="calc" class="page">
+<h3>Incentive Calculator</h3>
+<div class="card">
+<label>Target</label>
+<input id="ct" type="number" value="1000000">
+
+<label>Actual Business</label>
+<input id="cb" type="number" value="1200000">
+
+<label>Incentive Rate (%)</label>
+<input id="cr" type="number" value="2">
+
+<label>Maximum Cap</label>
+<input id="cc" type="number" value="40000">
+
+<button class="action" onclick="calculate()">Calculate</button>
+<div class="result" id="answer"></div>
+</div>
+</section>
+
+<section id="policy" class="page">
+<h3>Policy Comparison Lab</h3>
+<div class="grid">
+<div class="card">
+<h4>Policy A</h4>
+<label>Rate (%)</label>
+<input id="ra" type="number" value="2">
+<label>Cap (₹)</label>
+<input id="ca" type="number" value="40000">
+</div>
+
+<div class="card">
+<h4>Policy B</h4>
+<label>Rate (%)</label>
+<input id="rb" type="number" value="2.5">
+<label>Cap (₹)</label>
+<input id="ccap" type="number" value="50000">
+</div>
+</div>
+
+<button class="action" onclick="compare()">Compare Policies</button>
+<div class="card" id="comparison"></div>
+</section>
+
+</main>
+
+<footer>
+Independent analytical prototype | All sample data is fictional
+</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+const money=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+
+let employees=[];
+try{
+employees=JSON.parse(localStorage.getItem("incentiveData"))||[];
+}catch(e){employees=[]}
+
+if(!employees.length){
+employees=[
+{id:1,name:"Employee A",t:1000000,b:1200000,r:2,c:40000},
+{id:2,name:"Employee B",t:1000000,b:900000,r:2,c:40000},
+{id:3,name:"Employee C",t:1000000,b:1500000,r:2,c:40000},
+{id:4,name:"Employee D",t:1000000,b:800000,r:2,c:40000}
+];
+}
+
+function saveData(){
+localStorage.setItem("incentiveData",JSON.stringify(employees));
+}
+
+function achievement(e){
+return e.t>0?e.b/e.t*100:0;
+}
+
+function payout(e){
+return Math.min(e.b*e.r/100,e.c);
+}
+
+function showPage(id,btn){
+document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+$(id).classList.add("active");
+btn.classList.add("active");
+}
+
+function clearForm(){
+$("editId").value="";
+$("name").value="";
+$("et").value=1000000;
+$("eb").value=1200000;
+$("er").value=2;
+$("ec").value=40000;
+}
+
+function saveEmployee(){
+let id=$("editId").value;
+let name=$("name").value.trim();
+let t=+$("et").value,b=+$("eb").value;
+let r=+$("er").value,c=+$("ec").value;
+
+if(!name||t<=0||b<0||r<0||c<0){
+alert("Please enter valid details");
+return;
+}
+
+let employee={id:id?Number(id):Date.now(),name,t,b,r,c};
+
+if(id){
+employees=employees.map(e=>e.id==id?employee:e);
+}else{
+employees.push(employee);
+}
+
+saveData();
+clearForm();
+render();
+alert("Employee saved successfully");
+}
+
+function editEmployee(id){
+let e=employees.find(x=>x.id===id);
+if(!e)return;
+$("editId").value=e.id;
+$("name").value=e.name;
+$("et").value=e.t;
+$("eb").value=e.b;
+$("er").value=e.r;
+$("ec").value=e.c;
+showPage("emp",document.querySelectorAll("nav button")[1]);
+window.scrollTo(0,0);
+}
+
+function deleteEmployee(id){
+if(confirm("Delete this employee?")){
+employees=employees.filter(e=>e.id!==id);
+saveData();
+render();
+}
+}
+
+function render(){
+let business=employees.reduce((s,e)=>s+e.b,0);
+let target=employees.reduce((s,e)=>s+e.t,0);
+let total=employees.reduce((s,e)=>s+payout(e),0);
+let avg=employees.length?
+employees.reduce((s,e)=>s+achievement(e),0)/employees.length:0;
+
+$("business").textContent=money(business);
+$("target").textContent=money(target);
+$("achievement").textContent=(target?business/target*100:0).toFixed(1)+"%";
+$("payout").textContent=money(total);
+$("count").textContent=employees.length;
+$("ratio").textContent=(business?total/business*100:0).toFixed(2)+"%";
+
+$("summary").textContent=
+"Average employee achievement: "+avg.toFixed(1)+"%. "+
+employees.filter(e=>achievement(e)>=100).length+
+" employees have achieved their targets.";
+
+$("rows").innerHTML=employees.map(e=>`
+<tr>
+<td>${safe(e.name)}</td>
+<td>${money(e.b)}</td>
+<td>${achievement(e).toFixed(1)}%</td>
+<td>${money(payout(e))}</td>
+<td>
+<button class="action" onclick="editEmployee(${e.id})">Edit</button>
+<button class="action danger" onclick="deleteEmployee(${e.id})">X</button>
+</td>
+</tr>`).join("");
+
+let top=[...employees].sort((a,b)=>achievement(b)-achievement(a)).slice(0,3);
+
+$("top").innerHTML=top.map((e,i)=>
+`<p>${i+1}. ${safe(e.name)} — ${achievement(e).toFixed(1)}%</p>`
+).join("")||"No employee records yet.";
+}
+
+function safe(s){
+return String(s).replace(/[&<>"']/g,c=>({
+"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
+}
+
+function calculate(){
+let t=+$("ct").value,b=+$("cb").value;
+let r=+$("cr").value,c=+$("cc").value;
+if(t<=0||b<0||r<0||c<0){
+alert("Enter valid values");return;
+}
+$("answer").innerHTML=
+"Achievement: "+(b/t*100).toFixed(2)+"%<br>"+
+"Calculated Incentive: "+money(b*r/100)+"<br>"+
+"Final Payout: "+money(Math.min(b*r/100,c));
+}
+
+function compare(){
+let values=["ra","ca","rb","ccap"].map(id=>$(id).value);
+if(values.some(x=>x===""||!Number.isFinite(+x)||+x<0)){
+alert("Enter valid policy values");return;
+}
+let a=0,b=0;
+employees.forEach(e=>{
+a+=Math.min(e.b*(+$("ra").value)/100,+$("ca").value);
+b+=Math.min(e.b*(+$("rb").value)/100,+$("ccap").value);
+});
+$("comparison").innerHTML=
+"<p>Policy A payout: <b>"+money(a)+"</b></p>"+
+"<p>Policy B payout: <b>"+money(b)+"</b></p>"+
+"<h3>Difference: "+money(Math.abs(b-a))+"</h3>"+
+"<p>"+(b>a?"Policy B costs more.":b<a?"Policy B costs less.":"Both policies have equal payout.")+"</p>";
+}
+
+render();
+</script>
+</body>
+</html>
